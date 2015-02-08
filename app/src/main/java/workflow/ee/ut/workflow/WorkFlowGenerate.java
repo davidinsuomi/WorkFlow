@@ -190,7 +190,20 @@ public class WorkFlowGenerate {
         }else{
             while(!startTask.equals(graphMap.get(endTask).get(0))){
                 FindCurrentTaskVariableAndPartnerLink(startTask);
-                startTask = graphMap.get(startTask).get(0);
+                int nextActivities = graphMap.get(startTask).size();
+                if(nextActivities >1) {
+                    String endFlowActivity= null;
+                    String startActivityInsideFlow = null;
+                    for (int i = 0; i < nextActivities; i++) {
+                        startActivityInsideFlow = graphMap.get(startTask).get(i);
+                        endFlowActivity = FindFlowEndActivty(startActivityInsideFlow);
+                        FindNewOffloadingVariablesAndPartnerLink(startActivityInsideFlow, endFlowActivity);
+                    }
+                    startTask = graphMap.get(endFlowActivity).get(0);
+                }
+                else {
+                    startTask = graphMap.get(startTask).get(0);
+                }
             }
         }
     }
@@ -235,12 +248,13 @@ public class WorkFlowGenerate {
             }
         }
     }
-    public void offLoadingTask(String startTask, String endTask) throws IllegalArgumentException, IllegalStateException, IOException{
+    public StringWriter offLoadingTask(String startTask, String endTask) throws IllegalArgumentException, IllegalStateException, IOException{
         FindNewOffloadingVariablesAndPartnerLink(startTask,endTask);
         InitializeXmlSerializer();
         TaskToBeOffloading(startTask,endTask);
         xmlSerializer.endTag("", "process");
         FinalizeXmlSerializer();
+        return writer;
     }
     //So far only to able to offloading sequenceTask
     public void TaskToBeOffloading(String startTask, String endTask) throws IllegalArgumentException, IllegalStateException, IOException{

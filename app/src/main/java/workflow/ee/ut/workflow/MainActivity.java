@@ -25,10 +25,15 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
@@ -57,6 +62,7 @@ public class MainActivity extends Activity {
     private BluetoothAdapter mBluetoothAdapter = null;
     private AssetManager assetManager;
     private static final UUID MY_UUID = UUID.fromString("cc135924-a93b-11e4-89d3-123b93f75cba");
+    StringWriter writer;
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -107,17 +113,37 @@ public class MainActivity extends Activity {
         //===================
         WorkFlowGenerate generate =  WorkFlowGenerate.testWorkFlowInstance();
         try {
-            generate.offLoadingTask("enterPoint", "endPoint");
+            writer = generate.offLoadingTask("enterPoint", "endPoint");
         } catch (IllegalArgumentException | IllegalStateException | IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+
+        //save the dynamic bpel to internal storage
+        saveBpelToInternalStorage("bpel.xml", writer);
+
+        String[] files;
+        String bpelFilePath = getApplicationContext().getFilesDir() + "/" + "bpel.xml";
+        //TODO Need to add the wsdl file
+        files = new String[] {bpelFilePath};
+        Compress compress = new Compress(files,getApplicationContext().getFilesDir() + "/" + "testing.zip");
+        compress.zip();
         //===================
         System.out.println("exectuion the flow");
 //        BeginWorkFlow(workFlowProcess);
         new offloadingToServerAsyncTask().execute();
     }
+    private void saveBpelToInternalStorage(String filename,StringWriter writer){
+        FileOutputStream outputStream;
 
+        try {
+            outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
+            outputStream.write(writer.toString().getBytes());
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     private class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
@@ -228,13 +254,25 @@ public class MainActivity extends Activity {
         protected Void doInBackground(Void... params) {
             // TODO Auto-generated method stub
             try {
-                InputStream offloadingStream = assetManager.open("HelloWorld2.zip" );
+                //TODO need to from the internal storage of the zip file
+//                InputStream offloadingStream = assetManager.open("HelloWorld2.zip" );
+//                FileInputStream fin = openFileInput("testing.zip");
+                String zipFileLocation = getApplicationContext().getFilesDir() + "/" + "testing.zip";
+                File zipFilePath = new File(zipFileLocation);
+                InputStream offloadingStream = null;
+
+                offloadingStream = new BufferedInputStream(new FileInputStream(zipFilePath));
+
                 OffloadingToServer offloadingToServer = new OffloadingToServer();
-                offloadingToServer.PostBPELtoServer("http://192.168.1.103/workflow/upload.php", offloadingStream);
+                offloadingToServer.PostBPELtoServer("http://192.168.1.104/workflow/upload.php", offloadingStream);
+                if(offloadingStream !=null){
+                    offloadingStream.close();
+                }
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+
             return null;
         }
 
