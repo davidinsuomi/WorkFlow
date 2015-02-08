@@ -84,14 +84,16 @@ public class MainActivity extends Activity {
         // Register the BroadcastReceiver
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(mReceiver, filter);
-        mBluetoothAdapter.startDiscovery();
+        //comment to stop discoverty
+//        mBluetoothAdapter.startDiscovery();
+
         assetManager = getResources().getAssets();
         InputStream inputStream = null;
         partnerLinksTextView = (TextView)findViewById(R.id.partnerLinks);
         variablesTextView =(TextView) findViewById(R.id.variables);
         sequenceTextView =(TextView) findViewById(R.id.sequence);
         try{
-            inputStream = assetManager.open("bpel04.xml" );
+            inputStream = assetManager.open("bpel05.xml" );
             if(inputStream !=null ){
                 workFlowProcess = workFlowXmlParser.parse(inputStream);
             }
@@ -103,9 +105,9 @@ public class MainActivity extends Activity {
         }
         //test workflow offloading
         //===================
-        WorkFlowGenerate generate = new WorkFlowGenerate(workFlowProcess);
+        WorkFlowGenerate generate =  WorkFlowGenerate.testWorkFlowInstance();
         try {
-            generate.TaskToBeOffloading("getData2", "postData2");
+            generate.offLoadingTask("enterPoint", "endPoint");
         } catch (IllegalArgumentException | IllegalStateException | IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -153,7 +155,7 @@ public class MainActivity extends Activity {
         }
 
         /** Will cancel an in-progress connection, and close the socket */
-        public void cancel() {9q
+        public void cancel() {
             try {
                 mmSocket.close();
             } catch (IOException e) { }
@@ -162,6 +164,7 @@ public class MainActivity extends Activity {
     private void manageConnectedSocket(BluetoothSocket socket){
         try {
             InputStream inputStream = socket.getInputStream();
+            OutputStream outputStream = socket.getOutputStream();
             String outputIP = convertStreamToString(inputStream);
             Log.d("TAG",outputIP);
         } catch (IOException e) {

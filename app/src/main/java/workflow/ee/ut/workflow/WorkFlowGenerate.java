@@ -90,18 +90,18 @@ public class WorkFlowGenerate {
         partnerLinks.add(partnerLink5);
         partnerLinks.add(partnerLink6);
 
-        WorkFlowInvoke getData1 = new WorkFlowInvoke("getData1","getData1PL",null,"","wsdlResponse1");
-        WorkFlowInvoke postData1 = new WorkFlowInvoke("postData1","WSDLProcessor",null,"wsdlResponse1","WSDLProcessorResponse1");
-        WorkFlowInvoke getData2 = new WorkFlowInvoke("getData2","getData2PL",null,"","wsdlResponse2");
-        WorkFlowInvoke postData2 = new WorkFlowInvoke("postData2","WSDLProcessor",null,"wsdlResponse2","WSDLProcessorResponse2");
-        WorkFlowInvoke getData3 = new WorkFlowInvoke("getData3","getData3PL",null,"","wsdlResponse3");
-        WorkFlowInvoke postData3 = new WorkFlowInvoke("postData3","WSDLProcessor",null,"wsdlResponse3","WSDLProcessorResponse3");
-        WorkFlowInvoke getData4 = new WorkFlowInvoke("getData4","getData4PL",null,"","wsdlResponse4");
-        WorkFlowInvoke postData4 = new WorkFlowInvoke("postData4","WSDLProcessor",null,"wsdlResponse4","WSDLProcessorResponse4");
-        WorkFlowInvoke getData5 = new WorkFlowInvoke("getData5","getData5PL",null,"","wsdlResponse5");
-        WorkFlowInvoke postData5 = new WorkFlowInvoke("postData5","WSDLProcessor",null,"wsdlResponse5","WSDLProcessorResponse5");
-        WorkFlowInvoke enterPoint = new WorkFlowInvoke("enterPoint","",null,"","");
-        WorkFlowInvoke endPoint = new WorkFlowInvoke("endPoint","",null,"","");
+        WorkFlowInvoke getData1 = new WorkFlowInvoke("getData1","getData1PL","","","wsdlResponse1");
+        WorkFlowInvoke postData1 = new WorkFlowInvoke("postData1","WSDLProcessor","","wsdlResponse1","WSDLProcessorResponse1");
+        WorkFlowInvoke getData2 = new WorkFlowInvoke("getData2","getData2PL","","","wsdlResponse2");
+        WorkFlowInvoke postData2 = new WorkFlowInvoke("postData2","WSDLProcessor","","wsdlResponse2","WSDLProcessorResponse2");
+        WorkFlowInvoke getData3 = new WorkFlowInvoke("getData3","getData3PL","","","wsdlResponse3");
+        WorkFlowInvoke postData3 = new WorkFlowInvoke("postData3","WSDLProcessor","","wsdlResponse3","WSDLProcessorResponse3");
+        WorkFlowInvoke getData4 = new WorkFlowInvoke("getData4","getData4PL","","","wsdlResponse4");
+        WorkFlowInvoke postData4 = new WorkFlowInvoke("postData4","WSDLProcessor","","wsdlResponse4","WSDLProcessorResponse4");
+        WorkFlowInvoke getData5 = new WorkFlowInvoke("getData5","getData5PL","","","wsdlResponse5");
+        WorkFlowInvoke postData5 = new WorkFlowInvoke("postData5","WSDLProcessor","","wsdlResponse5","WSDLProcessorResponse5");
+        WorkFlowInvoke enterPoint = new WorkFlowInvoke("enterPoint","","","","");
+        WorkFlowInvoke endPoint = new WorkFlowInvoke("endPoint","","","","");
         activityMap.put("enterPoint",enterPoint);
         activityMap.put("endPoint",endPoint);
         activityMap.put("getData1",getData1);
@@ -235,11 +235,15 @@ public class WorkFlowGenerate {
             }
         }
     }
-
-    //So far only to able to offloading sequenceTask
-    public void TaskToBeOffloading(String startTask, String endTask) throws IllegalArgumentException, IllegalStateException, IOException{
+    public void offLoadingTask(String startTask, String endTask) throws IllegalArgumentException, IllegalStateException, IOException{
         FindNewOffloadingVariablesAndPartnerLink(startTask,endTask);
         InitializeXmlSerializer();
+        TaskToBeOffloading(startTask,endTask);
+        xmlSerializer.endTag("", "process");
+        FinalizeXmlSerializer();
+    }
+    //So far only to able to offloading sequenceTask
+    public void TaskToBeOffloading(String startTask, String endTask) throws IllegalArgumentException, IllegalStateException, IOException{
         if(startTask.equals(endTask)){
             //only one task need to offloading
             xmlSerializer.startTag("", "sequence");
@@ -250,16 +254,38 @@ public class WorkFlowGenerate {
             xmlSerializer.startTag("", "sequence");
             while(!startTask.equals(graphMap.get(endTask).get(0))){
                 CreateCurrentXMLTag(startTask);
-                startTask = graphMap.get(startTask).get(0);
+//                startTask = graphMap.get(startTask).get(0);
+                int nextActivities = graphMap.get(startTask).size();
+                if(nextActivities >1) {
+                    String endFlowActivity= null;
+                    String startActivityInsideFlow = null;
+                    xmlSerializer.startTag("", "Flow");
+                    for (int i = 0; i < nextActivities; i++) {
+                        startActivityInsideFlow = graphMap.get(startTask).get(i);
+                        endFlowActivity = FindFlowEndActivty(startActivityInsideFlow);
+                        TaskToBeOffloading(startActivityInsideFlow, endFlowActivity);
+
+                    }
+                    xmlSerializer.endTag("", "Flow");
+                    startTask = graphMap.get(endFlowActivity).get(0);
+                }
+                else {
+                    startTask = graphMap.get(startTask).get(0);
+                }
+
             }
             xmlSerializer.endTag("", "sequence");
-            xmlSerializer.endTag("", "process");
         }
-
-        FinalizeXmlSerializer();
     }
 
-
+    private String FindFlowEndActivty(String activityName){
+        String previousActivity = null;
+        while(graphMapBackword.get(activityName).size() == 1){
+            previousActivity = activityName;
+            activityName = graphMap.get(activityName).get(0);
+        }
+        return previousActivity;
+    }
     private void CreateCurrentXMLTag(String currentTag) throws IllegalArgumentException, IllegalStateException, IOException{
         WorkFlowActivity activity = activityMap.get(currentTag);
         if(activity instanceof WorkFlowInvoke){
