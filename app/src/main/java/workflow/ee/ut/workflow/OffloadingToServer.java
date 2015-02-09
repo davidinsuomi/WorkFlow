@@ -50,7 +50,7 @@ public class OffloadingToServer {
         HttpURLConnection connection = null;
         DataOutputStream outputStream = null;
         DataInputStream inputStream = null;
-        String pathToOurFile = "/offloaindLocation.zip";
+        String pathToOurFile = "/bpel.zip";
         String lineEnd = "\r\n";
         String twoHyphens = "--";
         String boundary =  "*****";
